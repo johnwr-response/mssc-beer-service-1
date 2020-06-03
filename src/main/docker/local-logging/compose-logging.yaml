@@ -1,12 +1,19 @@
 version: '3.8'
 services:
+
+# Before running elasticsearch. Make sure number of is supported:
+  # wsl -d docker-desktop
+  # sysctl vm.max_map_count
+  # sysctl -w vm.max_map_count=262144
   elasticsearch:
+    container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.7.0
     ports:
       - '9200:9200'
     environment:
-      discovery-type: single-node
+        discovery.type: single-node
   kibana:
+    container_name: kibana
     image: docker.elastic.co/kibana/kibana:7.7.0
     ports:
       - '5601:5601'
@@ -14,7 +21,9 @@ services:
     depends_on:
       - elasticsearch
   filebeat:
+    container_name: filebeat
     image: docker.elastic.co/beats/filebeat:7.7.0
+    command: filebeat -e -strict.perms=false
     volumes:
       - ./filebeat/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro  # Configuration file
       - /var/lib/docker/containers:/var/lib/docker/containers:ro            # Docker logs
@@ -22,19 +31,33 @@ services:
     user: root
     restart: on-failure
   jms:
+    container_name: jms
     image: vromero/activemq-artemis
     ports:
       - '8161:8161'
       - '61616:61616'
   zipkin:
+    container_name: zipkin
     image: openzipkin/zipkin
     ports:
       - '9411:9411'
+  mysql:
+    container_name: mysql
+    image: mysql
+    environment:
+      - "MYSQL_ROOT_PASSWORD=1234"
+    ports:
+      - '3306:3306'
+    volumes:
+      - "./db_data:/var/lib/mysql"
+
   eureka:
+    container_name: eureka
     image: sfgbeerworks/sfg-brewery-eureka
     ports:
       - '8761:8761'
   config:
+    container_name: configserver
     image: sfgbeerworks/sfg-brewery-config
     ports:
       - '8888:8888'
@@ -44,10 +67,12 @@ services:
         EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://netflix:eureka@eureka:8761/eureka
         EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
   inventory-service:
+    container_name: inventory-service
     image: sfgbeerworks/sfg-brewery-inventory-service
     ports:
       - '8082:8082'
     depends_on:
+      - mysql
       - eureka
       - config
       - jms
@@ -57,12 +82,13 @@ services:
       SPRING_PROFILES_ACTIVE: local-discovery,localmysql
       SPRING_ZIPKIN_BASEURL: http://zipkin
       SPRING_ARTEMIS_HOST: jms
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/beerinventoryservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/beerinventoryservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
     restart: on-failure
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
   inventory-failover:
+    container_name: inventory-failover
     image: sfgbeerworks/sfg-brewery-inventory-failover
     ports:
       - '8083:8083'
@@ -74,10 +100,12 @@ services:
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
     restart: on-failure
   beer-service:
+    container_name: beer-service
     image: sfgbeerworks/sfg-brewery-beer-service
     ports:
       - '8080:8080'
     depends_on:
+      - mysql
       - eureka
       - config
       - jms
@@ -88,16 +116,18 @@ services:
       SPRING_PROFILES_ACTIVE: local-discovery,localmysql
       SPRING_ZIPKIN_BASEURL: http://zipkin
       SPRING_ARTEMIS_HOST: jms
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/beerservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/beerservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
     restart: on-failure
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
   order-service:
+    container_name: order-service
     image: sfgbeerworks/sfg-brewery-order-service
     ports:
       - '8081:8081'
     depends_on:
+      - mysql
       - eureka
       - config
       - jms
@@ -108,13 +138,14 @@ services:
       SPRING_PROFILES_ACTIVE: local-discovery,localmysql
       SPRING_ZIPKIN_BASEURL: http://zipkin
       SPRING_ARTEMIS_HOST: jms
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/beerorderservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/beerorderservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
       SFG_BREWERY_BEER-SERVICE-HOST: http://beer-service:8080
     restart: on-failure
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
   gateway:
+    container_name: gatewayserver
     image: sfgbeerworks/sfg-brewery-gateway
     ports:
       - '9090:9090'
