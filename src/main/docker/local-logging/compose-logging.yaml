@@ -1,7 +1,7 @@
 version: '3.8'
 services:
 
-# Before running elasticsearch. Make sure number of is supported:
+# Before running elasticsearch. Make sure number of vm.max_map_count is supported in vm (262144):
   # wsl -d docker-desktop
   # sysctl vm.max_map_count
   # sysctl -w vm.max_map_count=262144
@@ -50,7 +50,6 @@ services:
       - '3306:3306'
     volumes:
       - "./db_data:/var/lib/mysql"
-
   eureka:
     container_name: eureka
     image: sfgbeerworks/sfg-brewery-eureka
@@ -58,7 +57,7 @@ services:
       - '8761:8761'
   config:
     container_name: configserver
-    image: sfgbeerworks/sfg-brewery-config
+    image: johnwr/mssc-config-server
     ports:
       - '8888:8888'
     depends_on:
@@ -68,7 +67,7 @@ services:
         EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
   inventory-service:
     container_name: inventory-service
-    image: sfgbeerworks/sfg-brewery-inventory-service
+    image: johnwr/mssc-beer-inventory-service
     ports:
       - '8082:8082'
     depends_on:
@@ -76,11 +75,15 @@ services:
       - eureka
       - config
       - jms
+      - zipkin
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://netflix:eureka@eureka:8761/eureka
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
       SPRING_PROFILES_ACTIVE: local-discovery,localmysql
-      SPRING_ZIPKIN_BASEURL: http://zipkin
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411
+      SPRING_ZIPKIN_ENABLED: 'true'
+      SPRING.CLOUD.DISCOVERY.ENABLED: 'true'
+      SPRING_CLOUD_CONFIG_URI: http://config:8888
       SPRING_ARTEMIS_HOST: jms
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/beerinventoryservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
     restart: on-failure
@@ -89,7 +92,7 @@ services:
       decode_log_event_to_json_object: "true"
   inventory-failover:
     container_name: inventory-failover
-    image: sfgbeerworks/sfg-brewery-inventory-failover
+    image: johnwr/mssc-inventory-failover
     ports:
       - '8083:8083'
     depends_on:
@@ -101,7 +104,7 @@ services:
     restart: on-failure
   beer-service:
     container_name: beer-service
-    image: sfgbeerworks/sfg-brewery-beer-service
+    image: johnwr/mssc-beer-service
     ports:
       - '8080:8080'
     depends_on:
@@ -109,12 +112,16 @@ services:
       - eureka
       - config
       - jms
+      - zipkin
       - inventory-service
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://netflix:eureka@eureka:8761/eureka
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
       SPRING_PROFILES_ACTIVE: local-discovery,localmysql
-      SPRING_ZIPKIN_BASEURL: http://zipkin
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411
+      SPRING_ZIPKIN_ENABLED: 'true'
+      SPRING.CLOUD.DISCOVERY.ENABLED: 'true'
+      SPRING_CLOUD_CONFIG_URI: http://config:8888
       SPRING_ARTEMIS_HOST: jms
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/beerservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
     restart: on-failure
@@ -123,7 +130,7 @@ services:
       decode_log_event_to_json_object: "true"
   order-service:
     container_name: order-service
-    image: sfgbeerworks/sfg-brewery-order-service
+    image: johnwr/mssc-beer-order-service
     ports:
       - '8081:8081'
     depends_on:
@@ -131,12 +138,17 @@ services:
       - eureka
       - config
       - jms
+      - zipkin
       - beer-service
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://netflix:eureka@eureka:8761/eureka
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
       SPRING_PROFILES_ACTIVE: local-discovery,localmysql
-      SPRING_ZIPKIN_BASEURL: http://zipkin
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411
+      SPRING_ZIPKIN_ENABLED: 'true'
+      SPRING_CLOUD_DISCOVERY_ENABLED: 'true'
+      SPRING_ZIPKIN.DISCOVERYCLIENTENABLED: 'true'
+      SPRING_CLOUD_CONFIG_URI: http://config:8888
       SPRING_ARTEMIS_HOST: jms
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/beerorderservice?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
       SFG_BREWERY_BEER-SERVICE-HOST: http://beer-service:8080
@@ -146,7 +158,7 @@ services:
       decode_log_event_to_json_object: "true"
   gateway:
     container_name: gatewayserver
-    image: sfgbeerworks/sfg-brewery-gateway
+    image: johnwr/mssc-brewery-gateway
     ports:
       - '9090:9090'
     depends_on:
@@ -156,10 +168,14 @@ services:
       - beer-service
       - order-service
       - inventory-failover
+      - zipkin
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://netflix:eureka@eureka:8761/eureka
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
       SPRING_PROFILES_ACTIVE: local-discovery
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411
+      SPRING_ZIPKIN_ENABLED: 'true'
+      SPRING_CLOUD_CONFIG_URI: http://config:8888
     restart: on-failure
     labels:
       collect_logs_with_filebeat: "true"
