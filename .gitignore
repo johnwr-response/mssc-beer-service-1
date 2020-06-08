@@ -142,3 +142,5 @@ Desktop.ini
 
 /target/
 /src/main/docker/local-logging/db_data/
+/src/main/docker/ca-certificate.crt
+/src/main/docker/truststore
