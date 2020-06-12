@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  filebeat:
+    build: filebeat/.
+    image: johnwr/filebeat:7.7.0
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro            # Docker logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro                        # Additional information about containers
+    extra_hosts:
+      - "elasticsearch:167.172.35.36"
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
