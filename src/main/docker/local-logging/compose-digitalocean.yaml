@@ -18,58 +18,66 @@ services:
       - '8082:8082'
     environment:
       SPRING_PROFILES_ACTIVE: digitalocean
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"inventory-service"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"inventory-service"}}'
-    restart: on-failure
+      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"inventory-service"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"mssc-brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"inventory-service"}}'
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
     deploy:
       replicas: 2
+      restart_policy:
+        condition: on-failure
   inventory-failover:
     image: johnwr/mssc-inventory-failover
     ports:
       - '8083:8083'
     environment:
       SPRING_PROFILES_ACTIVE: digitalocean
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"inventory-failover"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"inventory-failover"}}'
+      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"inventory-failover"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"mssc-brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"inventory-failover"}}'
     deploy:
       replicas: 2
+      restart_policy:
+        condition: on-failure
   beer-service:
     image: johnwr/mssc-beer-service
     ports:
       - '8080:8080'
     environment:
       SPRING_PROFILES_ACTIVE: digitalocean
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"beer-service"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"beer-service"}}'
-    restart: on-failure
+      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"beer-service"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"mssc-brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"beer-service"}}'
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
     deploy:
       replicas: 2
+      restart_policy:
+        condition: on-failure
   order-service:
     image: johnwr/mssc-beer-order-service
     ports:
       - '8081:8081'
     environment:
       SPRING_PROFILES_ACTIVE: digitalocean
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"order-service"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"order-service"}}'
-    restart: on-failure
+      SPRING_CLOUD_CONFIG_URI: http://config:8888
+      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"order-service"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"mssc-brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"order-service"}}'
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
     deploy:
       replicas: 2
+      restart_policy:
+        condition: on-failure
   gateway:
     image: johnwr/mssc-brewery-gateway
     ports:
       - '9090:9090'
     environment:
       SPRING_PROFILES_ACTIVE: digitalocean
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"gateway"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"gateway"}}'
+      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://netflix:eureka@142.93.129.11:8761/eureka/"},"region":"default","register-with-eureka":true},"instance":{"preferIpAddress":false,"hostName":"gateway"}},"spring":{"cloud":{"config":{"discovery":{"enabled":true,"serviceId":"mssc-brewery-config"},"failFast":true,"username":"MyUserName","password":"MySecretPassword"}}},"application":{"name":"gateway"}}'
     restart: on-failure
     labels:
       collect_logs_with_filebeat: "true"
       decode_log_event_to_json_object: "true"
     deploy:
       replicas: 2
+      restart_policy:
+        condition: on-failure
